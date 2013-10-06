@@ -1,0 +1,144 @@
+#!/usr/bin/env python
+
+# Copyright 2013 Mike Burns
+# License under BSD. See LICENSE for details.
+
+import sys
+import os
+import tempfile
+import readline
+import re
+
+
+def run_commands(fh):
+    for cmd in fh:
+        handle_command(cmd)
+
+
+def run_visual_command():
+    (fd, pathname) = tempfile.mkstemp(suffix='sh')
+    fh = os.fdopen(fd)
+    try:
+        if os.system("%s %s" % (get_editor(), pathname)) == 0:
+            run_commands(fh)
+    finally:
+        fh.close()
+        os.unlink(pathname)
+
+
+def get_editor():
+    return os.environ['VISUAL'] or os.environ['EDITOR'] or 'vi'
+
+
+def get_shell():
+    return os.environ['SHELL'] or 'sh'
+
+
+def run_shell(sh_cmd):
+    def runner():
+        if sh_cmd == "":
+            os.system("%s -i" % get_shell())
+        else:
+            os.system("%s -c '%s'" % (get_shell(), sh_cmd))
+    return runner
+
+
+def run_help():
+    print "\\v\topen editor"
+    print "\\!\trun shell"
+    print "\\h\tshow this help"
+    print "\\q\tquit"
+
+
+def run_quit():
+    raise EOFError
+
+
+def handle_flag(flag):
+    {'v': run_visual_command,
+     '!': run_shell(flag.lstrip('!')),
+     '?': run_help,
+     'h': run_help,
+     'q': run_quit
+     }[flag[0]]()
+
+
+def handle_command(cmd):
+    if cmd.startswith("#"):
+        pass
+    elif cmd.startswith("\\"):
+        handle_flag(cmd.lstrip("\\"))
+    else:
+        os.system("git %s" % cmd)
+
+
+def prompt_format():
+    """
+    %c - start coloring based on status
+    %w - stop coloring based on status
+    %b - branch name
+    %# - prompt terminator, changes based on status
+    """
+    return "%b%c%#%w "
+
+
+def git_status():
+    status = os.popen('git status 2>&1').read()
+    if re.search("Not a git repository", status):
+        return ('uninitialized', 'uninitialized')
+
+    branch = re.search("On branch (.*)", status).group(1)
+
+    if re.search("working directory clean", status):
+        return (branch, 'clean')
+    elif re.search("[uU]ntracked files", status):
+        return (branch, 'untracked')
+    elif re.search("Changes to be committed", status):
+        return (branch, 'added')
+    elif re.search("deleted:", status):
+        return (branch, 'deleted')
+
+
+def prompt_color(clean):
+    return {'clean': "\033[00m",
+            'untracked': "\033[00;31m",
+            'added': "\033[00;33m",
+            'deleted': "\033[00;33m",
+            'uninitialized': "\033[00;41m"}[clean]
+
+
+def prompt_reset_color():
+    return "\033[00m"
+
+
+def prompt_terminator(clean):
+    return {'clean': '@',
+            'untracked': '!',
+            'added': '&',
+            'deleted': '&',
+            'uninitialized': '!!'}[clean]
+
+
+def build_prompt():
+    (branch, clean) = git_status()
+    prompt = prompt_format().replace('%c', prompt_color(clean)).replace('%w', prompt_reset_color()).replace('%b', branch).replace('%#', prompt_terminator(clean))
+    return prompt
+
+
+def interactive():
+    return os.isatty(sys.stdin.fileno()) and len(sys.argv) == 1
+
+if interactive():
+    try:
+        while True:
+            cmd = raw_input(build_prompt())
+            handle_command(cmd)
+    except EOFError:
+        print
+        pass
+elif len(sys.argv) > 1:
+    fh = open(sys.argv[1])
+    run_commands(fh)
+    fh.close()
+else:
+    run_commands(sys.stdin)
