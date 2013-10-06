@@ -1,3 +1,6 @@
+gitsh
+-----
+
 The `gitsh` program is an interactive shell for git. From within `gitsh`
 you can issue any git command, even using your local aliases and
 configuration.
@@ -13,6 +16,22 @@ It additionally has these features:
 - Can escape out to the shell.
 - Load `$VISUAL` to write complex commands.
 
+Usage
+=====
+
+    ~% cd gitsh
+    ~/gitsh% gitsh
+    master@ status -sb
+    ## master
+    master@ \!gvim README.md
+    master@ add .
+    master& commit
+    master@ push
+
+
+Todo
+====
+
 This commit is the initial sketch. It works for me, but there is some
 that is desired. Things I want to change or add:
 
@@ -27,5 +46,6 @@ that is desired. Things I want to change or add:
 - Something to indicate whether the commit has been pushed to a remote.
 
 Author
+======
 
 Copyright 2013 Mike Burns. Licensed under BSD 3-clause license.
