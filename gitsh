@@ -44,11 +44,12 @@ def run_shell(sh_cmd):
 
 
 def run_help():
-    print "\\v\topen editor"
     print "\\!\trun shell"
     print "\\?\tshow this help"
     print "\\h\tshow help for a give topic"
     print "\\q\tquit"
+    print "\\s\tswitch directory"
+    print "\\v\topen editor"
 
 
 def run_git_help(topic):
@@ -61,12 +62,22 @@ def run_quit():
     raise EOFError
 
 
+def run_switch_dir(directory):
+    def switcher():
+        if directory == "":
+            print os.getcwd()
+        else:
+            os.chdir(os.path.expanduser(directory))
+    return switcher
+
+
 def handle_flag(flag):
     {'v': run_visual_command,
      '!': run_shell(flag.lstrip('!')),
      '?': run_help,
      'h': run_git_help(flag.lstrip('h')),
-     'q': run_quit
+     'q': run_quit,
+     's': run_switch_dir(flag.lstrip('s'))
      }[flag[0]]()
 
 
