@@ -35,7 +35,6 @@ Todo
 This commit is the initial sketch. It works for me, but there is some
 that is desired. Things I want to change or add:
 
-- A `\cd` command that changes to a different git repo.
 - Re-write in a language that exists by default on every system I use.
   This is either POSIX sh or C.
 - Tests.
