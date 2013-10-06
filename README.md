@@ -39,10 +39,10 @@ that is desired. Things I want to change or add:
   This is either POSIX sh or C.
 - Tests.
 - Allow people to type `git ` before the commands, by habit.
-- Some sort of clever chaining of commands, to express e.g. "add every
-  file not already added within the `bin/` directory".
+- Some sort of clever chaining of commands.
 - Documentation. Manpage, Web site.
 - Something to indicate whether the commit has been pushed to a remote.
+- Tab completion.
 
 Author
 ======
