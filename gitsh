@@ -99,6 +99,8 @@ def git_status():
         return (branch, 'added')
     elif re.search("deleted:", status):
         return (branch, 'deleted')
+    elif re.search("modified:", status):
+        return (branch, 'modified')
 
 
 def prompt_color(clean):
@@ -106,6 +108,7 @@ def prompt_color(clean):
             'untracked': "\033[00;31m",
             'added': "\033[00;33m",
             'deleted': "\033[00;33m",
+            'modified': "\033[00;33m",
             'uninitialized': "\033[00;41m"}[clean]
 
 
@@ -118,6 +121,7 @@ def prompt_terminator(clean):
             'untracked': '!',
             'added': '&',
             'deleted': '&',
+            'modified': '&',
             'uninitialized': '!!'}[clean]
 
 
