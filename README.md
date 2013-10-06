@@ -25,7 +25,6 @@ that is desired. Things I want to change or add:
   file not already added within the `bin/` directory".
 - Documentation. Manpage, Web site.
 - Something to indicate whether the commit has been pushed to a remote.
-- Handle just pressing enter.
 
 Author
 
