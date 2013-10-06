@@ -98,6 +98,8 @@ def prompt_format():
     %w - stop coloring based on status
     %b - branch name
     %# - prompt terminator, changes based on status
+    %d - current directory, absolute
+    %D - current directory, just basename
     """
     return "%b%c%#%w "
 
@@ -145,7 +147,7 @@ def prompt_terminator(clean):
 
 def build_prompt():
     (branch, clean) = git_status()
-    prompt = prompt_format().replace('%c', prompt_color(clean)).replace('%w', prompt_reset_color()).replace('%b', branch).replace('%#', prompt_terminator(clean))
+    prompt = prompt_format().replace('%c', prompt_color(clean)).replace('%w', prompt_reset_color()).replace('%b', branch).replace('%#', prompt_terminator(clean)).replace('%d', os.getcwd()).replace('%D', os.path.basename(os.getcwd()))
     return prompt
 
 
