@@ -46,8 +46,15 @@ def run_shell(sh_cmd):
 def run_help():
     print "\\v\topen editor"
     print "\\!\trun shell"
-    print "\\h\tshow this help"
+    print "\\?\tshow this help"
+    print "\\h\tshow help for a give topic"
     print "\\q\tquit"
+
+
+def run_git_help(topic):
+    def helper():
+        os.system("git --help %s" % topic)
+    return helper
 
 
 def run_quit():
@@ -58,7 +65,7 @@ def handle_flag(flag):
     {'v': run_visual_command,
      '!': run_shell(flag.lstrip('!')),
      '?': run_help,
-     'h': run_help,
+     'h': run_git_help(flag.lstrip('h')),
      'q': run_quit
      }[flag[0]]()
 
