@@ -43,6 +43,7 @@ that is desired. Things I want to change or add:
 - Documentation. Manpage, Web site.
 - Something to indicate whether the commit has been pushed to a remote.
 - Tab completion.
+- A -v flag that shows more feedback.
 
 Author
 ======
