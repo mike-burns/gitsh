@@ -109,6 +109,8 @@ def git_status():
     status = os.popen('git status 2>&1').read()
     if re.search("Not a git repository", status):
         return ('uninitialized', 'uninitialized')
+    elif re.search("Not currently on any branch", status):
+        return ('(no branch)', 'no-branch')
 
     branch = re.search("On branch (.*)", status).group(1)
 
@@ -130,7 +132,9 @@ def prompt_color(clean):
             'added': "\033[00;33m",
             'deleted': "\033[00;33m",
             'modified': "\033[00;33m",
-            'uninitialized': "\033[00;41m"}[clean]
+            'uninitialized': "\033[00;41m",
+            'no-branch': "\033[00;34m",
+            }[clean]
 
 
 def prompt_reset_color():
@@ -143,7 +147,8 @@ def prompt_terminator(clean):
             'added': '&',
             'deleted': '&',
             'modified': '&',
-            'uninitialized': '!!'}[clean]
+            'uninitialized': '!!',
+            'no-branch': '*'}[clean]
 
 
 def build_prompt():
