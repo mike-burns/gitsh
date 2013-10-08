@@ -47,9 +47,9 @@ def run_shell(sh_cmd):
 def run_help():
     print "\\!\trun shell"
     print "\\?\tshow this help"
+    print "\\c\tchange directory"
     print "\\h\tshow help for a give topic"
     print "\\q\tquit"
-    print "\\s\tswitch directory"
     print "\\v\topen editor"
 
 
@@ -78,7 +78,7 @@ def handle_flag(flag):
      '?': run_help,
      'h': run_git_help(flag.lstrip('h')),
      'q': run_quit,
-     's': run_switch_dir(flag.lstrip('s'))
+     'c': run_switch_dir(flag.lstrip('c'))
      }[flag[0]]()
 
 
