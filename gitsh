@@ -20,8 +20,10 @@ def run_visual_command():
     (fd, pathname) = tempfile.mkstemp(suffix='sh')
     fh = os.fdopen(fd)
     try:
-        if os.system("%s %s" % (get_editor(), pathname)) == 0:
-            run_commands(fh)
+        subprocess.call("%s %s" % (get_editor(), pathname), shell=True)
+        run_commands(fh)
+    except OSError as e:
+        print >>sys.stderr, e
     finally:
         fh.close()
         os.unlink(pathname)
@@ -37,10 +39,13 @@ def get_shell():
 
 def run_shell(sh_cmd):
     def runner():
-        if sh_cmd == "":
-            os.system("%s -i" % get_shell())
-        else:
-            os.system("%s -c '%s'" % (get_shell(), sh_cmd))
+        try:
+            if sh_cmd == "":
+                subprocess.call("%s -i" % get_shell(), shell=True)
+            else:
+                subprocess.call("%s -c '%s'" % (get_shell(), sh_cmd), shell=True)
+        except OSError as e:
+            print >>sys.stderr, e
     return runner
 
 
@@ -56,7 +61,10 @@ def run_help():
 
 def run_git_help(topic):
     def helper():
-        os.system("git --help %s" % topic)
+        try:
+            subprocess.call("git --help %s" % topic, shell=True)
+        except OSError as e:
+            print >>sys.stderr, e
     return helper
 
 
@@ -98,7 +106,10 @@ def handle_command(cmd):
     elif cmd.startswith("\\"):
         handle_flag(cmd.lstrip("\\"))
     else:
-        os.system("git %s" % cmd)
+        try:
+            subprocess.call("git %s" % cmd, shell=True)
+        except OSError as e:
+            print >>sys.stderr, e
 
 
 def prompt_format():
