@@ -47,6 +47,7 @@ def run_shell(sh_cmd):
 def run_help():
     print "\\!\trun shell"
     print "\\?\tshow this help"
+    print "\\\"\twrite a string"
     print "\\c\tchange directory"
     print "\\e\topen editor"
     print "\\h\tshow help for a give topic"
@@ -72,13 +73,20 @@ def run_switch_dir(directory):
     return switcher
 
 
+def run_string(string):
+    def stringer():
+        print string
+    return stringer
+
+
 def handle_flag(flag):
     {'e': run_visual_command,
      '!': run_shell(flag.lstrip('!')),
      '?': run_help,
      'h': run_git_help(flag.lstrip('h')),
      'q': run_quit,
-     'c': run_switch_dir(flag.lstrip('c'))
+     'c': run_switch_dir(flag.lstrip('c')),
+     '"': run_string(flag.strip('"'))
      }[flag[0]]()
 
 
