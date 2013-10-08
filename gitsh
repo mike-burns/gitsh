@@ -68,7 +68,7 @@ def run_switch_dir(directory):
         if directory == "":
             print os.getcwd()
         else:
-            os.chdir(os.path.expanduser(directory))
+            os.chdir(os.path.expanduser(directory.strip()))
     return switcher
 
 
