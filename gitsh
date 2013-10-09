@@ -9,175 +9,179 @@ import tempfile
 import readline
 import re
 import subprocess
+import cmd
 
 
-def run_commands(fh):
-    for cmd in fh:
-        handle_command(cmd)
+class Gitsh(cmd.Cmd):
+    def preloop(self):
+        self._set_prompt()
 
+    def precmd(self, line):
+        if line == 'EOF' or line == '':
+            return line
+        elif line.startswith("\\"):
+            name = self._backslash_command_line(line[1])
+            return "backslash_%s %s" % (name, line[2:])
+        else:
+            return "git_command %s" % line
 
-def run_visual_command():
-    (fd, pathname) = tempfile.mkstemp(suffix='sh')
-    fh = os.fdopen(fd)
-    try:
-        subprocess.call("%s %s" % (get_editor(), pathname), shell=True)
-        run_commands(fh)
-    except OSError as e:
-        print >>sys.stderr, e
-    finally:
-        fh.close()
-        os.unlink(pathname)
+    def postcmd(self, stop, line):
+        if not stop:
+            self._set_prompt()
+        return stop
 
+    def do_EOF(self, _line):
+        print
+        return True
 
-def get_editor():
-    return os.environ['VISUAL'] or os.environ['EDITOR'] or 'vi'
-
-
-def get_shell():
-    return os.environ['SHELL'] or 'sh'
-
-
-def run_shell(sh_cmd):
-    def runner():
+    def do_backslash_editor(self, _line):
+        (fd, pathname) = tempfile.mkstemp(suffix='sh')
+        fh = os.fdopen(fd)
+        prior_stdin = self.stdin
         try:
-            if sh_cmd == "":
-                subprocess.call("%s -i" % get_shell(), shell=True)
-            else:
-                subprocess.call("%s -c '%s'" % (get_shell(), sh_cmd), shell=True)
+            subprocess.call("%s %s" % (self._get_editor(), pathname), shell=True)
+            self.stdin = fh
+            self.cmdloop()
         except OSError as e:
             print >>sys.stderr, e
-    return runner
+        finally:
+            self.stdin = prior_stdin
+            fh.close()
+            os.unlink(pathname)
 
+    def do_shell(self, line):
+        try:
+            if line == "":
+                subprocess.call("%s -i" % self._get_shell(), shell=True)
+            else:
+                subprocess.call("%s -c '%s'" % (self._get_shell(), line), shell=True)
+        except OSError as e:
+            print >>sys.stderr, e
 
-def run_help():
-    print "\\!\trun shell"
-    print "\\?\tshow this help"
-    print "\\\"\twrite a string"
-    print "\\c\tchange directory"
-    print "\\e\topen editor"
-    print "\\h\tshow help for a give topic"
-    print "\\q\tquit"
+    def do_backslash_shell(self, line):
+        return self.do_shell(line)
 
+    def do_help(self, _line):
+        print "\\!\trun shell"
+        print "\\?\tshow this help"
+        print "\\\"\twrite a string"
+        print "\\c\tchange directory"
+        print "\\e\topen editor"
+        print "\\h\tshow help for a give topic"
+        print "\\q\tquit"
 
-def run_git_help(topic):
-    def helper():
+    def do_backslash_help(self, line):
+        return self.do_help(line)
+
+    def do_backslash_git_help(self, topic):
         try:
             subprocess.call("git --help %s" % topic, shell=True)
         except OSError as e:
             print >>sys.stderr, e
-    return helper
 
+    def do_backslash_quit(self, _line):
+        return True
 
-def run_quit():
-    raise EOFError
-
-
-def run_switch_dir(directory):
-    def switcher():
+    def do_backslash_change_directory(self, directory):
         if directory == "":
             print os.getcwd()
         else:
             os.chdir(os.path.expanduser(directory.strip()))
-    return switcher
 
+    def do_backslash_string(self, string):
+        print string.rstrip('"')
 
-def run_string(string):
-    def stringer():
-        print string
-    return stringer
-
-
-def handle_flag(flag):
-    {'e': run_visual_command,
-     '!': run_shell(flag.lstrip('!')),
-     '?': run_help,
-     'h': run_git_help(flag.lstrip('h')),
-     'q': run_quit,
-     'c': run_switch_dir(flag.lstrip('c')),
-     '"': run_string(flag.strip('"'))
-     }[flag[0]]()
-
-
-def handle_command(cmd):
-    if cmd == "":
-        handle_command("status")
-    elif cmd.startswith("#"):
-        pass
-    elif cmd.startswith("\\"):
-        handle_flag(cmd.lstrip("\\"))
-    else:
+    def do_git_command(self, line):
         try:
-            subprocess.call("git %s" % cmd, shell=True)
+            subprocess.call("git %s" % line, shell=True)
         except OSError as e:
             print >>sys.stderr, e
 
+    def default(self, line):
+        return self.do_git_command(line)
 
-def prompt_format():
-    """
-    %c - start coloring based on status
-    %w - stop coloring based on status
-    %b - branch name
-    %# - prompt terminator, changes based on status
-    %d - current directory, absolute
-    %D - current directory, just basename
-    """
-    return "%b%c%#%w "
+    def emptyline(self):
+        return self.do_git_command("status")
 
+    def _get_editor(self):
+        return os.environ['VISUAL'] or os.environ['EDITOR'] or 'vi'
 
-def git_status():
-    status = os.popen('git status 2>&1').read()
-    if re.search("Not a git repository", status):
-        return ('uninitialized', 'uninitialized')
-    elif re.search("Not currently on any branch", status):
-        return ('(no branch)', 'no-branch')
+    def _get_shell(self):
+        return os.environ['SHELL'] or 'sh'
 
-    branch = re.search("On branch (.*)", status).group(1)
+    def _backslash_command_line(self, flag):
+        return {'e': 'editor',
+                '!': 'shell',
+                '?': 'help',
+                'h': 'git_help',
+                'q': 'quit',
+                'c': 'change_dir',
+                '"': 'string'}[flag]
 
-    if re.search("working directory clean", status):
-        return (branch, 'clean')
-    elif re.search("[uU]ntracked files", status):
-        return (branch, 'untracked')
-    elif re.search("Changes to be committed", status):
-        return (branch, 'added')
-    elif re.search("deleted:", status):
-        return (branch, 'deleted')
-    elif re.search("modified:", status):
-        return (branch, 'modified')
+    def _set_prompt(self):
+        prompter = Prompter()
+        self.prompt = prompter.make_prompt()
 
 
-def prompt_color(clean):
-    return {'clean': "\033[00m",
-            'untracked': "\033[00;31m",
-            'added': "\033[00;33m",
-            'deleted': "\033[00;33m",
-            'modified': "\033[00;33m",
-            'uninitialized': "\033[00;41m",
-            'no-branch': "\033[00;34m",
-            }[clean]
+class Prompter(object):
+    def make_prompt(self):
+        (branch, clean) = self._git_status()
+        prompt = self._prompt_format().replace('%c', self._prompt_color(clean)).replace('%w', self._prompt_reset_color()).replace('%b', branch).replace('%#', self._prompt_terminator(clean)).replace('%d', os.getcwd()).replace('%D', os.path.basename(os.getcwd()))
+        return prompt
 
 
-def prompt_reset_color():
-    return "\033[00m"
+    def _prompt_format(self):
+        """
+        %c - start coloring based on status
+        %w - stop coloring based on status
+        %b - branch name
+        %# - prompt terminator, changes based on status
+        %d - current directory, absolute
+        %D - current directory, just basename
+        """
+        return "%b%c%#%w "
 
+    def _git_status(self):
+        status = os.popen('git status 2>&1').read()
+        if re.search("Not a git repository", status):
+            return ('uninitialized', 'uninitialized')
+        elif re.search("Not currently on any branch", status):
+            return ('(no branch)', 'no-branch')
 
-def prompt_terminator(clean):
-    return {'clean': '@',
-            'untracked': '!',
-            'added': '&',
-            'deleted': '&',
-            'modified': '&',
-            'uninitialized': '!!',
-            'no-branch': '*'}[clean]
+        branch = re.search("On branch (.*)", status).group(1)
 
+        if re.search("working directory clean", status):
+            return (branch, 'clean')
+        elif re.search("[uU]ntracked files", status):
+            return (branch, 'untracked')
+        elif re.search("Changes to be committed", status):
+            return (branch, 'added')
+        elif re.search("deleted:", status):
+            return (branch, 'deleted')
+        elif re.search("modified:", status):
+            return (branch, 'modified')
 
-def build_prompt():
-    (branch, clean) = git_status()
-    prompt = prompt_format().replace('%c', prompt_color(clean)).replace('%w', prompt_reset_color()).replace('%b', branch).replace('%#', prompt_terminator(clean)).replace('%d', os.getcwd()).replace('%D', os.path.basename(os.getcwd()))
-    return prompt
+    def _prompt_color(self, clean):
+        return {'clean': "\033[00m",
+                'untracked': "\033[00;31m",
+                'added': "\033[00;33m",
+                'deleted': "\033[00;33m",
+                'modified': "\033[00;33m",
+                'uninitialized': "\033[00;41m",
+                'no-branch': "\033[00;34m",
+                }[clean]
 
+    def _prompt_reset_color(self):
+        return "\033[00m"
 
-def interactive():
-    return os.isatty(sys.stdin.fileno()) and len(sys.argv) == 1
+    def _prompt_terminator(self, clean):
+        return {'clean': '@',
+                'untracked': '!',
+                'added': '&',
+                'deleted': '&',
+                'modified': '&',
+                'uninitialized': '!!',
+                'no-branch': '*'}[clean]
 
 
 class Completer(object):
@@ -228,18 +232,22 @@ class Completer(object):
         return self._commands
 
 
-if interactive():
-    try:
-        Completer.register()
-        while True:
-            cmd = raw_input(build_prompt())
-            handle_command(cmd)
-    except EOFError:
-        print
-        pass
-elif len(sys.argv) > 1:
-    fh = open(sys.argv[1])
-    run_commands(fh)
-    fh.close()
-else:
-    run_commands(sys.stdin)
+def interactive():
+    return os.isatty(sys.stdin.fileno()) and len(sys.argv) == 1
+
+if __name__ == '__main__':
+    if 'libedit' in readline.__doc__:
+        readline.parse_and_bind('bind ^I rl_complete')
+
+    program = Gitsh()
+    if interactive():
+        program.complete = Completer()
+        program.cmdloop()
+    elif len(sys.argv) > 1:
+        fh = open(sys.argv[1])
+        program.stdin = fh
+        program.use_rawinput = False
+        program.cmdloop()
+        fh.close()
+    else:
+        program.cmdloop()
