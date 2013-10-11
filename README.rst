@@ -20,10 +20,14 @@ It additionally has these features:
 Installation
 ------------
 
+::
+
     % python setup.py install
 
 Usage
 -----
+
+::
 
     ~% cd gitsh
     ~/gitsh% gitsh
