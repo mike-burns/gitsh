@@ -17,6 +17,11 @@ It additionally has these features:
 - Can escape out to the shell.
 - Load ``$VISUAL`` to write complex commands.
 
+Installation
+------------
+
+    % python setup.py install
+
 Usage
 -----
 
