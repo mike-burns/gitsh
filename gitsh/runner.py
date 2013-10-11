@@ -3,11 +3,12 @@ import tempfile
 import cmd
 import os
 from .prompter import Prompter
+from .completer import Completer
 
 
 class Gitsh(cmd.Cmd):
-    def preloop(self):
-        self._set_prompt()
+    prompt = ''
+    use_rawinput = False
 
     def precmd(self, line):
         if line == 'EOF' or line == '':
@@ -17,11 +18,6 @@ class Gitsh(cmd.Cmd):
             return "backslash_%s %s" % (name, line[2:])
         else:
             return "git_command %s" % line
-
-    def postcmd(self, stop, line):
-        if not stop:
-            self._set_prompt()
-        return stop
 
     def do_EOF(self, _line):
         print
@@ -99,14 +95,11 @@ class Gitsh(cmd.Cmd):
     def default(self, line):
         return self.do_git_command(line)
 
-    def emptyline(self):
-        return self.do_git_command("status")
-
     def _get_editor(self):
-        return os.environ['VISUAL'] or os.environ['EDITOR'] or 'vi'
+        return os.environ.get('VISUAL') or os.environ.get('EDITOR') or 'vi'
 
     def _get_shell(self):
-        return os.environ['SHELL'] or 'sh'
+        return os.environ.get('SHELL') or 'sh'
 
     def _backslash_command_line(self, flag):
         return {'e': 'editor',
@@ -116,6 +109,22 @@ class Gitsh(cmd.Cmd):
                 'q': 'quit',
                 'c': 'change_dir',
                 '"': 'string'}[flag]
+
+
+class InteractiveGitsh(Gitsh):
+    complete = Completer()
+    use_rawinput = True
+
+    def preloop(self):
+        self._set_prompt()
+
+    def postcmd(self, stop, line):
+        if not stop:
+            self._set_prompt()
+        return stop
+
+    def emptyline(self):
+        return self.do_git_command("status")
 
     def _set_prompt(self):
         prompter = Prompter()
