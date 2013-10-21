@@ -96,7 +96,8 @@ class Gitsh(cmd.Cmd):
         return self.do_git_command(line)
 
     def _get_editor(self):
-        return os.environ.get('VISUAL') or os.environ.get('EDITOR') or 'vi'
+        output = subprocess.check_output(('/usr/bin/env', 'git', 'var', 'GIT_EDITOR'))
+        return output.splitlines()[0]
 
     def _get_shell(self):
         return os.environ.get('SHELL') or 'sh'
